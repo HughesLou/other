@@ -1,0 +1,22 @@
+- project:
+    name: 'LITE-SABRE'
+    description: 'Lite SABRE allows to run SABRE services on a single box'
+    repository:
+       git-data:
+          url: 'ssh://git@stash/scd/lite-sabre.git'
+
+    branch-strategy: 'trunk-based'
+
+    pipeline-build-name: '1-build'
+
+    # Path where the jobs.yaml can be found in the repo
+    jobs-path: 'cd'
+
+    # If your jobs need to run on slave - uncomment this and change node name
+    # jenkins:
+    #   node: 'master'
+
+    # Which branches you want to have in Jenkins
+    all-branches-regex: 'master'
+
+    recipients: 'konstantin.shaposhnikov@sc.com'

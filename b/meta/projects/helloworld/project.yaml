@@ -1,0 +1,25 @@
+- project:
+    name: 'helloworld'
+    branch-strategy: 'feature-branches'  # options: 'feature-branches', 'trunk-based', 'self-managed'(S2BX model) & 'feature-branches-stages' (MIG model)
+    pipeline-build-name: 'pipeline'
+    jobs-path: 'cd/jobs'
+    jenkins:
+      slaves:
+        - unix-slave:
+            name: 'test_slave'
+            description: 'test_slave'
+            executors: 3
+            remote-root: '/fmsdcd/helloworld_slave1'
+            labels: '{project.name}'
+            host: 'localhost'
+            port: '22'
+            credentials:
+                description: 'creds1'
+                username: 'sabredev'
+                password: 'sabredev123'
+            jvm-options: ''
+            java-path: '/usr/java/jdk1.7.0_25/bin/java'
+      node: 'master'
+    repository:
+       git-data:
+          url: 'ssh://git@stash/cd/helloworld.git'

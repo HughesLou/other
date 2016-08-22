@@ -1,0 +1,15 @@
+- defaults:
+    name: global
+    logrotate:
+        daysToKeep: 5 
+        numToKeep: 2
+        artifactDaysToKeep: -1
+        artifactNumToKeep: -1
+
+- defaults:
+    name: git
+    scm:
+        - git:
+            url: '{git-url}'
+            branches:
+                - master

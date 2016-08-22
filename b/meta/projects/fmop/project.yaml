@@ -1,0 +1,17 @@
+- project:
+    name: 'fmop'
+    branch-strategy: 'feature-branches'  # options: 'feature-branches', 'trunk-based', 'self-managed'(S2BX model) & 'feature-branches-stages' (MIG model)
+    pipeline-build-name: 'pipeline'
+    jobs-path: 'src/jobs'
+    jenkins:
+#       slaves:
+#            - unix-slave:
+#                name: 'cnng7phzw1.zone1.scb.net'
+#                description: '{project.name} slave 1'
+#                executors: 1
+#                remote-root: 'c:\\jenkins'
+#                labels: '{project.name}'
+
+    repository:
+       git-data:
+          url: 'ssh://git@stash/fmop/hughtesting.git'

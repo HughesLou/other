@@ -1,0 +1,36 @@
+# Bill of Materials for Razor MLS
+- project:
+    # Name of the project and the main view in Jenkins
+    name: 'MLS-BOM'
+    # Regular expression for branches, that you want to build automaticaly in Jenkins
+    all-branches-regex: 'master|RAZOR-*'
+    
+    # Branching strategy
+    # options: 'feature-branches', 'trunk-based', 'passthrough ',
+    # 'self-managed'(S2BX model) & 'feature-branches-stages' (MIG model)
+    branch-strategy: 'feature-branches'
+    
+    # This must be a valid job suffix in your jobs.yaml.
+    # Watch out: '_{branch} will be appended to this name to locate the job
+    pipeline-build-name: 'BUILD'
+    
+    # Path where the jobs.yaml can be found in the repo
+    jobs-path: 'cd'
+    
+    jenkins:
+      node: 'uklvadrzr30a'
+
+    repository:
+       git-data:
+          url: 'ssh://git@stash/raz/bom.git'
+
+    recipients: 'razorjenkinsusers@exchange.standardchartered.com'
+    acl_list: '1394207,1466811'
+    update_dependents_acl_list : '1394207,1466811'
+
+    # jdk version
+    jdk_version: '1.7.0_60'
+    # maven version
+    maven_version: '3.0.4'
+    # sonar
+    sonar_installation_name: 'SonarQube'

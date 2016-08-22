@@ -1,0 +1,13 @@
+- project:
+    name: 'CM-CIS-STP-SERVICE'
+    all-branches-regex: 'master'
+    controlled-branches-regex: '^[A-Z]*-\d{1,5}$'
+    pipeline-build-name: '{project.name}_BUILD'
+    jobs-path: 'cd/jobs'
+    branch-strategy: 'passthrough'
+    repository:
+       svn-data:
+          url: 'http://dbvdev4001.uk.standardchartered.com/svn/algo/COMMODITIES/Commodities STP/CIS_STP_WEB/trunk'
+          master-repo: "/sabrebuild/master-repos/cm-cis-stp-service"
+    jenkins:
+      node: 'master'

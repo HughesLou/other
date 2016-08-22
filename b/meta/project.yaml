@@ -1,0 +1,11 @@
+- project:
+    name: ADMIN                                 # Name of the project
+    node: master                    # Jenkins node name for the project
+    bootstrapgit: {==project.bootstrap_git==}           # Bootstrap repo url
+    git-url: {==project.repo==}                         # Git repo URL
+    master-workspace: {==project.jenkins.workspace==}   # path to workspace, where all master related jobs will be using
+    virtualenv: {==project.virtualenv.home==}           # Virtualenv location on build server
+    pythonpath: {==project.virtualenv.python_path==}
+    jobs:
+      - 'jobs'
+

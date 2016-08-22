@@ -1,0 +1,12 @@
+- project:
+    name: 'COPS'
+    all-branches-regex: 'master'
+    controlled-branches-regex: '^[A-Z]*-\d{1,5}$'
+    pipeline-build-name: 'COPS-build'
+    jobs-path: 'cops/res/build-configs/'
+    branch-strategy: 'passthrough'
+    repository:
+       git-data:
+          url: 'ssh://git@stash/cops/cops_mirror.git'
+    jenkins:
+      node: 'COPS'

@@ -1,0 +1,12 @@
+- project:
+    name: 'bootstrap'
+    all-branches-regex: '.*'
+    controlled-branches-regex: 'none'
+    branch-strategy: 'feature-branches'  # options: 'feature-branches', 'trunk-based', 'self-managed'(S2BX model) & 'feature-branches-stages' (MIG model)
+    pipeline-build-name: 'build'
+    jobs-path: 'meta'
+    wait-for-jobs: false
+
+    repository:
+       git-data:
+          url: 'ssh://git@stash/cd/bootstrap.git'

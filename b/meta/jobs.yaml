@@ -1,0 +1,176 @@
+- job-group:
+    name: 'jobs'
+    jobs:
+        - '{name}_build_{branch}'
+        - '{name}_nose_{branch}'
+        - '{name}_docs_{branch}'
+        - '{name}_rebase'
+#        - '{name}_projectcheck_{branch}'
+
+- job-template:
+    name: '{name}_build_{branch}'
+    node: 'master'
+    logrotate:
+        daysToKeep: -1
+        numToKeep: 10
+        artifactDaysToKeep: -1
+        artifactNumToKeep: -1
+
+    scm:
+        - git:
+            url: '{project.bootstrap_git_data.url}'
+            refspec: '+refs/heads/{project.bootstrap_git_data.branch}:refs/remotes/origin/{project.bootstrap_git_data.branch}'
+            branches:
+                - '{project.bootstrap_git_data.branch}'
+            wipe-workspace: False
+            basedir: bootstrap
+
+    builders:
+        - custom-python:
+            home: '{project.jenkins.virtualenv_home}'
+            python: |
+                import sys
+                import os
+                import os.path
+                from os.path import join as jp
+                here = os.path.dirname(__file__)
+                sys.path.append('bootstrap/meta/py')
+                sys.path.append('bootstrap/meta/py/lib')
+                sys.path.append('bootstrap/meta/py/lib/jenkinsapi')
+
+                os.unsetenv('http_proxy')
+                os.environ['http_proxy'] = ''
+
+                import logging
+
+                from jenkinsapi import jenkins
+
+                from jenkinsflow.jobcontrol import serial, parallel
+                from jenkinsflow.unbuffered import UnBuffered
+                # Unbuffered output does not work well in Jenkins/Hudson, so in case
+                # this is run from a jenkins/hudson job, we want unbuffered output
+                sys.stdout = UnBuffered(sys.stdout)
+
+
+                jenkinsurl = "{project.jenkins.url}"
+                jenkins_user = "{project.jenkins.user_name}"
+                jenkins_token = "{project.jenkins.user_token}"
+
+                def main():
+                    logging.basicConfig()
+                    logging.getLogger("").setLevel(logging.WARNING)
+                    api = jenkins.Jenkins(jenkinsurl, jenkins_user, jenkins_token)
+
+                    with parallel(api, timeout=0, job_name_prefix='{name}_', report_interval=5) as ctrl1:
+                        ctrl1.invoke_unchecked('docs_{branch}')
+                        ctrl1.invoke('nose_{branch}')
+
+                if __name__ == '__main__':
+                    main()
+
+- job-template:
+    name: '{name}_nose_{branch}'
+    node: 'master'
+    # workspace: '{master-workspace}'
+    logrotate:
+        daysToKeep: -1
+        numToKeep: 10
+        artifactDaysToKeep: -1
+        artifactNumToKeep: -1
+
+    scm:
+        - git:
+            url: '{project.repository.url}'
+            refspec: '+refs/heads/{branch}:refs/remotes/origin/{branch}'
+            branches:
+                - '{branch}'
+            wipe-workspace: False
+            basedir: '{name}'
+
+    builders:
+        - custom-python:
+            home: '{project.jenkins.virtualenv_home}'
+            shell: |
+                unset http_proxy
+                export GIT_PYTHON_TRACE=true
+                export GIT_SSH="/home/sabredev/.ssh/git_ssh.sh"
+                export PYTHONPATH={name}/meta/py:{name}/meta/py/lib:{name}/meta/py/lib/jenkinsapi:{name}/meta/py/lib/jenkins_job_builder
+                export PROJECT_PATH=$WORKSPACE/{name}
+                nosetests --with-coverage --cover-package=data_object,git_utils --with-xunit --cover-html --cover-html-dir=$WORKSPACE/coverage_report --verbose -s {name}/meta/py/tests {name}/meta/py/data_object/tests
+
+    publishers:
+        - junit:
+            results: nosetests.xml
+            keep-long-stdio: false
+        - html-publisher:
+            name: 'Coverage'
+            dir: 'coverage_report'
+            files: 'index.html'
+            keep-all: true
+
+- job-template:
+    name: '{name}_docs_{branch}'
+    node: 'master'
+    logrotate:
+        daysToKeep: -1
+        numToKeep: 10
+        artifactDaysToKeep: -1
+        artifactNumToKeep: -1
+
+    scm:
+        - git:
+            url: '{project.repository.url}'
+            refspec: '+refs/heads/{branch}:refs/remotes/origin/{branch}'
+            branches:
+                - '{branch}'
+            wipe-workspace: False
+            basedir: '{name}'
+
+    builders:
+        - custom-python:
+            home: '{project.jenkins.virtualenv_home}'
+            shell: |
+                unset http_proxy
+                export GIT_PYTHON_TRACE=true
+                export GIT_SSH="/home/sabredev/.ssh/git_ssh.sh"
+                export PYTHONPATH={name}/meta/py:{name}/meta/py/lib:{name}/meta/py/lib/jenkinsapi:$PYTHONPATH
+                export PROJECT_PATH=$WORKSPACE/{name}
+                cd '{name}'
+                if [ ! -e /sabrebuild/bootstrap_docs/{branch} ]
+                then
+                    mkdir -p /sabrebuild/bootstrap_docs/{branch}
+                fi
+                sphinx-build -b html -d docs/_build/doctrees docs/ /sabrebuild/bootstrap_docs/{branch}
+
+- job-template:
+    name: '{name}_projectcheck_{branch}'
+    node: 'master'
+    # workspace: '{master-workspace}'
+
+    scm:
+        - git:
+            url: '{project.repository.url}'
+            refspec: '+refs/heads/{branch}:refs/remotes/origin/{branch}'
+            branches:
+                - '{branch}'
+            wipe-workspace: False
+            basedir: '{name}'
+
+    builders:
+        - custom-python:
+            home: '{project.jenkins.virtualenv_home}'
+            shell: |
+                unset http_proxy
+                export PYTHONPATH={name}/meta/py:{name}/meta/py/lib:{name}/meta/py/lib/jenkinsapi:$PYTHONPATH
+                export PROJECT_PATH={name}/meta/projects
+                nosetests --with-xunit --verbose -s {name}/meta/projects/tests
+
+- job-template:
+    name: '{name}_rebase'
+    node: 'master'
+    # workspace: '{master-workspace}'
+
+    builders:
+        - shell: |
+            echo "Do nothing for bootstrap"
+

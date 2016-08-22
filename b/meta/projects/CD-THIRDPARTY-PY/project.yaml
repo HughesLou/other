@@ -1,0 +1,16 @@
+- project:
+    name: 'CD-THIRDPARTY-PY'
+    all-branches-regex: 'master|SFS-*'
+    controlled-branches-regex: 'none'
+    branch-strategy: 'feature-branches'
+    pipeline-build-name: 'Build'
+    jobs-path: 'cd'
+    wait-for-jobs: false
+    jenkins:
+        node: 'master'
+
+    repository:
+       git-data:
+          url: 'ssh://git@stash/cd/thirdparty-py.git'
+    job-groups:
+        feature_jobs: 'master|SFS-.*'
