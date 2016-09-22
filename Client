@@ -1,0 +1,142 @@
+
+package com.hughes;
+
+import com.google.common.io.ByteStreams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.nio.file.Path;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
+
+public class Client {
+
+    private final static Logger log = LoggerFactory.getLogger(Client.class);
+
+    private ClientRunScriptThread executionThread;
+
+    public void afterPropertiesSet() throws Exception {
+        if (executionThread == null) {
+            executionThread = new ClientRunScriptThread();
+            executionThread.setName("client");
+            executionThread.setDaemon(false);
+            executionThread.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+                public void uncaughtException(Thread t, Throwable e) {
+                    log.error("uncaught exception in thread {}, for client {}, {}", t, e);
+                }
+            });
+            executionThread.setClient(this);
+            executionThread.setInitialScript(new String(ByteStreams.toByteArray(getClass().getResourceAsStream("hughes.js"))));
+        }
+    }
+
+    /**
+     * create a separate classloader for  jars and facade classes<br/>
+     * It is synchronized per instance
+     */
+    public ClassLoader getClientClassLoader() throws Exception {
+        return null;
+    }
+
+    public Object runScript(String script) throws Exception {
+        return executionThread.runScript(script);
+    }
+
+    /**
+     * use this lock when you try to establish  connection. System.setProperty('codebase'...) should be in lock period
+     */
+    public final static Semaphore CONNECT_LOCK = new Semaphore(1); //allow only one  client to do connecting at any time across entire VM
+
+    /**
+     * fetch latest jars from  server
+     */
+    public void refresh() throws Exception {
+        // TODO:
+    }
+
+    private String crc32(Path filePath) throws IOException {
+        return null;
+    }
+}
+
+class ClientRunScriptThread extends Thread {
+
+    private final static Logger log = LoggerFactory.getLogger(ClientRunScriptThread.class);
+
+    private Client client;
+
+    private String initialScript;
+
+    private SynchronousQueue<String> input = new SynchronousQueue<String>(true);
+
+    private SynchronousQueue<Object> output = new SynchronousQueue<Object>(true);
+
+    public void run() {
+        ScriptEngineManager sem = new ScriptEngineManager();
+        ScriptEngine scriptEngine = sem.getEngineByName("js");
+        scriptEngine.put("CONNECT_LOCK", Client.CONNECT_LOCK);
+        scriptEngine.put("codebase", null);
+        scriptEngine.put("log", log);
+        try {
+            System.out.println(initialScript);
+            scriptEngine.eval(initialScript);
+        } catch (ScriptException e1) {
+            log.error("fail to run initial script", e1);
+        }
+        while (true) {
+            String script = null;
+            try {
+                script = input.take();
+            } catch (InterruptedException e) {
+                log.warn("thread interrupted", e);
+                break;
+            }
+            Object rtn = null;
+            try {
+                rtn = scriptEngine.eval(script);
+            } catch (ScriptException e2) {
+                log.error("script execution error for {}", script, e2);
+            }
+            try {
+                output.put(rtn);
+            } catch (InterruptedException e) {
+                log.error("SERIOUS ERROR !!! thread interrupted, a call to runScript may block forever");
+            }
+        }
+    }
+
+    public Object runScript(String script) throws InterruptedException {
+        if (State.NEW.equals(getState())) {
+            start();
+        }
+        boolean offered = input.offer(script, 30, TimeUnit.SECONDS);
+        if (offered == false) {
+            throw new RuntimeException("fail to offer script for execution in 10 seconds " + script);
+        }
+        return output.take();
+    }
+
+    @Override
+    public synchronized void start() {
+        try {
+            setContextClassLoader(client.getClientClassLoader());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        super.start();
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
+    }
+
+    public void setInitialScript(String initialScript) {
+        this.initialScript = initialScript;
+    }
+}
